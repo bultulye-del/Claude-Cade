@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Учёт обучения и активности</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--fg:#1c2330;--mut:#667085;--bd:#e3e6eb;--ac:#2563eb;--ac2:#b7c7ee;--er:#c62828;--wa:#b26a00;--ok:#1b7f3b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f141b;--card:#171e29;--fg:#e8ecf2;--mut:#93a0b4;--bd:#273043;--ac:#6ea0ff;--ac2:#34466b;--er:#ff8a80;--wa:#ffb74d;--ok:#6fdc8c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+header b{font-size:16px;margin-right:8px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:0;background:none;color:var(--mut);padding:7px 12px;border-radius:6px;font:inherit;cursor:pointer}
+nav button.on{background:var(--ac2);color:var(--fg);font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+h2{font-size:14px;margin:0 0 12px}
+.sub,.note{color:var(--mut);font-size:12px}.note{margin-top:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;align-items:flex-end}
+.filters label{display:flex;flex-direction:column;font-size:11px;color:var(--mut);gap:3px}
+select,input[type=month],input[type=file]{background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:6px 8px;font:inherit;min-width:130px;max-width:230px}
+button.b{background:var(--ac);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer}
+button.b.g{background:none;color:var(--fg);border:1px solid var(--bd)}button.b:disabled{opacity:.4;cursor:default}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpis .card{margin:0}.kpi b{display:block;font-size:26px;line-height:1.2}.kpi span{color:var(--mut);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.grid .card{margin:0}
+.scroll{overflow-x:auto}
+.row{display:grid;grid-template-columns:minmax(90px,1.4fr) 2fr;gap:8px;align-items:center;margin:7px 0;font-size:12px}
+.bar{background:var(--ac2);border-radius:4px;height:16px}.bar i{display:block;background:var(--ac);height:100%;border-radius:4px}
+.row small{color:var(--mut);display:block}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:640px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{color:var(--mut);font-weight:600}td.w{white-space:normal;min-width:180px}.dot{color:var(--ac);text-align:center}
+.lg{font-size:11px;color:var(--mut);margin-top:6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.msg{margin:6px 0;font-size:13px}.er{color:var(--er)}.wa{color:var(--wa)}.ok{color:var(--ok)}
+.pv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}
+.pv div{border:1px solid var(--bd);border-radius:8px;padding:8px}.pv b{display:block;font-size:20px}
+svg text{fill:var(--mut);font-size:10px}
+.hid{display:none}
+</style></head><body>
+<header><b>Учёт обучения и активности</b>
+<nav id="nav"><button data-v="dash">Дашборд</button><button data-v="ses">Сессии курсов</button><button data-v="up">Загрузка данных</button><button data-v="rep">Загруженные отчёты</button></nav></header>
+<main>
+<section id="v-dash">
+<div class="filters">
+<label>С месяца<select id="F"></select></label><label>По месяц<select id="T"></select></label>
+<label>Курс<select id="C"></select></label><label>Город<select id="G"></select></label>
+<label>План / внеплан<select id="P"></select></label><label>Вид активности<select id="A"></select></label>
+<button class="b g" id="ex1">Экспорт CSV</button></div>
+<div class="kpis" id="kpis"></div>
+<div class="grid" style="margin-bottom:14px">
+<div class="card"><h2>Динамика по месяцам</h2><div class="scroll" id="ch"></div><div class="lg"><i style="background:var(--ac2)"></i>Заявлено<i style="background:var(--ac)"></i>Фактически (слушателей)</div></div>
+<div class="card"><h2>Курсы</h2><div id="cs"></div></div>
+<div class="card"><h2>Города</h2><div id="ct"></div></div></div>
+<div class="card"><h2>Прочие активности по месяцам</h2><div class="scroll" id="ac"></div>
+<div class="note">В отчётах указан только перечень работ без дат и количества, поэтому показано лишь наличие в месяце.</div></div>
+</section>
+<section id="v-ses" class="hid"><div class="card"><h2>Сессии курсов (с учётом фильтров дашборда)</h2><div class="scroll" id="tb"></div>
+<div class="note">Слушатели — посещения курсов, а не уникальные сотрудники: списков ФИО в отчётах нет.</div></div></section>
+<section id="v-up" class="hid"><div class="card"><h2>Загрузка месячного отчёта (.docx)</h2>
+<div class="filters"><label>Файл<input type="file" id="fl" accept=".docx"></label><label>Месяц отчёта<input type="month" id="mo"></label><button class="b" id="chk">Проверить</button></div>
+<div class="note">Месяц указывается вручную: текст внутри файлов бывает неверным (в отчётах за февраль и март написано «январь»). Файл обрабатывается в браузере и никуда не отправляется.</div>
+<div id="pv"></div></div></section>
+<section id="v-rep" class="hid"><div class="card"><h2>Загруженные отчёты</h2><div class="scroll" id="rp"></div>
+<div class="note">Удаление исключает данные отчёта из аналитики; отчёт можно восстановить. Данные хранятся в браузере (localStorage) на этом компьютере.</div></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MN=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const lab=m=>MN[+m.slice(5)-1]+' '+m.slice(2,4),fd=i=>i.slice(8)+'.'+i.slice(5,7)+'.'+i.slice(0,4);
+const dr=(a,b)=>a===b?fd(a):fd(a).slice(0,5)+'–'+fd(b);
+const RULES=[['sdh','Cramer: SDH, PDH, PSTN, DWDM'],['cable manager','Cable Manager NRI Cramer'],['стпмс','СТПМС (техподдержка местной сети)'],['ip, mpls','Cramer: IP, MPLS, Ethernet, xDSL, GPON'],['обзорный','Обзорный курс по сетям и услугам общества']];
+const canon=n=>{n=n.toLowerCase();const r=RULES.find(x=>n.includes(x[0]));return r?r[1]:null};
+const C2=RULES[0][1],C3=RULES[1][1],C4=RULES[2][1],C1=RULES[3][1],C5=RULES[4][1];
+const K=s=>[s.c,s.s,s.g].join('|');
+// ---------- хранилище (localStorage) ----------
+const LS='trn_portal_v1';
+function seed(){
+ const nm=['январь','февраль','март','апрель','май','июнь','июль','август'];
+ const R=nm.map((n,i)=>({id:i+1,month:'2026-0'+(i+1),file:'Отчет за '+n+' 2026 (встроено)',at:'2026-09-28',st:'active',n:0,w:[]}));
+ const S=[[1,C5,'2026-01-22','2026-01-22',0,'Алматы',3,0,20],[2,C3,'2026-02-17','2026-02-19',1,'Алматы',20,6,9],[3,C1,'2026-03-17','2026-03-20',1,'Алматы',32,6,9],[4,C4,'2026-04-09','2026-04-10',1,'Алматы',16,9,9],[4,C2,'2026-04-21','2026-04-24',1,'Алматы',32,9,9],[5,C3,'2026-05-20','2026-05-22',1,'Алматы',20,9,11],[6,C1,'2026-06-02','2026-06-05',1,'Астана',32,9,11],[6,C2,'2026-06-23','2026-06-26',1,'Астана',32,9,12],[8,C1,'2026-08-11','2026-08-14',1,'Актау',32,9,11]]
+  .map(([r,c,s,e,p,g,h,d,a],i)=>({id:i+1,rid:r,m:'2026-0'+r,c,raw:c,s,e,p,g,h,d,a,r:5}));
+ const A=[];[['Консультации по БД NRI Cramer',1,8],['Сопровождение ДО',1,8],['Консультации по курсу СТПМС',1,8],['Профсоюзная работа',1,8],['Закуп ТМЗ 2025 год',1,5],['Дорожная карта развития компетенций',3,8]]
+  .forEach(([name,a,b])=>{for(let r=a;r<=b;r++)A.push({rid:r,m:'2026-0'+r,name,desc:name,note:null})});
+ R.forEach(r=>r.n=S.filter(x=>x.rid===r.id).length+A.filter(x=>x.rid===r.id).length);
+ return{R,S,A};}
+let DB;try{DB=JSON.parse(localStorage.getItem(LS))}catch(e){}
+DB=DB||seed();
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(DB))}catch(e){}};
+const act=()=>new Set(DB.R.filter(r=>r.st==='active').map(r=>r.id));
+// ---------- чтение .docx без внешних библиотек ----------
+async function unzip(buf){
+ const v=new DataView(buf),u=new Uint8Array(buf);let e=u.length-22;
+ while(e>=0&&v.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw 0;
+ const n=v.getUint16(e+10,true);let p=v.getUint32(e+16,true);
+ for(let i=0;i<n;i++){const cm=v.getUint16(p+10,true),cs=v.getUint32(p+20,true),nl=v.getUint16(p+28,true),xl=v.getUint16(p+30,true),cl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true);
+  if(new TextDecoder().decode(u.subarray(p+46,p+46+nl))==='word/document.xml'){
+   const l=lo+30+v.getUint16(lo+26,true)+v.getUint16(lo+28,true),d=u.subarray(l,l+cs);
+   if(cm===0)return new TextDecoder().decode(d);
+   return await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();}
+  p+=46+nl+xl+cl;}
+ throw 0;}
+function pd(t,Y){const m=[...t.matchAll(/(\d{1,2})\.(\d{2})(?:\.(\d{4}))?/g)];if(!m.length)return null;
+ const iso=x=>{const y=+x[3]||Y,mo=+x[2],dd=+x[1],dt=new Date(Date.UTC(y,mo-1,dd));return dt.getUTCMonth()===mo-1&&dt.getUTCDate()===dd?y+'-'+String(mo).padStart(2,'0')+'-'+String(dd).padStart(2,'0'):null};
+ const a=iso(m[0]),b=iso(m[m.length-1]);return a&&b?[a,b]:null}
+const num=s=>{const v=parseFloat(String(s).replace(/[%\s]/g,'').replace(',','.'));return isNaN(v)?null:v};
+function parseXml(xml,month){
+ const Y=+month.slice(0,4),d=new DOMParser().parseFromString(xml,'application/xml');
+ if(d.getElementsByTagName('parsererror').length)throw 0;
+ const tx=p=>Array.from(p.getElementsByTagName('w:t')).map(t=>t.textContent).join('').trim();
+ const o={S:[],A:[],er:[],wa:[]},tb=d.getElementsByTagName('w:tbl')[0];
+ if(!tb)o.wa.push('Таблица курсов не найдена: курсы за месяц не проводились или не указаны');
+ else Array.from(tb.getElementsByTagName('w:tr')).forEach(tr=>{
+  const c=Array.from(tr.children).filter(x=>x.nodeName==='w:tc').map(x=>Array.from(x.getElementsByTagName('w:p')).map(tx).join(' ').trim());
+  if(!/^\d+$/.test(c[0]||''))return;
+  const n='Строка '+c[0];
+  if(c.length<11){o.er.push(n+': ожидается 11 столбцов, найдено '+c.length);return}
+  if(!c[1]){o.er.push(n+': отсутствует название курса');return}
+  const dd=pd(c[2],Y);if(!dd){o.er.push(n+': не удалось прочитать дату «'+c[2]+'»');return}
+  const s={raw:c[1],c:canon(c[1])||c[1],s:dd[0],e:dd[1],p:/^план/i.test(c[3]),g:c[4]||null,h:num(c[6]),d:num(c[7]),a:num(c[8]),r:num(c[9])};
+  if(s.h==null)o.er.push(n+': отсутствует длительность');
+  if(s.a==null)o.er.push(n+': отсутствует число участников');
+  if(!canon(c[1]))o.wa.push(n+': курс «'+c[1].slice(0,50)+'» не сопоставлен со справочником');
+  if(s.s.slice(0,7)!==month)o.wa.push(n+': дата курса вне месяца отчёта');
+  if(s.d===0&&s.a>0)o.wa.push(n+': заявлено 0, фактически '+s.a);
+  o.S.push(s)});
+ Array.from(d.getElementsByTagName('w:p')).filter(p=>p.parentNode.nodeName!=='w:tc').forEach(p=>{
+  const m=tx(p).match(/^\d+\.\s*(.+)/);if(!m)return;
+  const nt=/\s*(очень\s+)?(об[ъь]?[её]мная)\s+работа\s*$/i;let t=m[1].trim();const note=nt.test(t);t=t.replace(nt,'').trim();
+  o.A.push({name:t.split(/\s*\(/)[0].trim(),desc:t,note:note?'объёмная работа':null})});
+ if(!o.A.length)o.wa.push('Список прочих работ не найден');
+ return o;}
+// ---------- интерфейс ----------
+const V=['dash','ses','up','rep'];
+function show(v){V.forEach(x=>$('v-'+x).classList.toggle('hid',x!==v));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='rep')reps()}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+const opt=(el,it,all)=>{el.innerHTML=(all?`<option value="">${all}</option>`:'')+it.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')};
+const sum=(a,k)=>a.reduce((s,x)=>s+(x[k]||0),0);
+let M=[],cur=[];
+function refresh(){
+ const on=act(),S=DB.S.filter(x=>on.has(x.rid)),A=DB.A.filter(x=>on.has(x.rid));
+ M=[...new Set(DB.R.filter(r=>on.has(r.id)).map(r=>r.month))].sort();
+ opt($('F'),M.map(m=>[m,lab(m)]));opt($('T'),M.map(m=>[m,lab(m)]));if(M.length)$('T').value=M[M.length-1];
+ opt($('C'),[...new Set(S.map(x=>x.c))].map(v=>[v,v]),'Все курсы');
+ opt($('G'),[...new Set(S.map(x=>x.g).filter(Boolean))].map(v=>[v,v]),'Все города');
+ opt($('P'),[['1','плановый'],['0','внеплановый']],'Все');
+ opt($('A'),[...new Set(A.map(x=>x.name))].map(v=>[v,v]),'Все виды');go();}
+['F','T','C','G','P','A'].forEach(i=>$(i).onchange=go);
+function rows(el,e){const mx=Math.max(1,...e.map(x=>x.v));el.innerHTML=e.length?e.map(x=>`<div class="row"><div>${esc(x.k)}<small>${x.s}</small></div><div class="bar"><i style="width:${x.v/mx*100}%"></i></div></div>`).join(''):'<div class="note">Нет данных</div>'}
+function go(){
+ const on=act(),ms=M.filter(m=>m>=$('F').value&&m<=$('T').value);
+ const ss=cur=DB.S.filter(x=>on.has(x.rid)&&ms.includes(x.m)&&(!$('C').value||x.c===$('C').value)&&(!$('G').value||x.g===$('G').value)&&($('P').value===''||String(+x.p)===$('P').value)).sort((a,b)=>a.s<b.s?-1:1);
+ const names=[...new Set(DB.A.filter(x=>on.has(x.rid)).map(x=>x.name))].filter(n=>!$('A').value||n===$('A').value);
+ const has=(n,m)=>DB.A.some(x=>on.has(x.rid)&&x.name===n&&x.m===m);
+ const nAct=names.filter(n=>ms.some(m=>has(n,m))).length;
+ const rt=ss.filter(x=>x.r!=null),avg=rt.length?(sum(rt,'r')/rt.length).toFixed(1).replace('.',','):'—';
+ const kp=[[ss.length,'Сессий курсов'],[sum(ss,'a'),'Слушателей (посещений)'],[sum(ss,'d'),'Заявлено'],[sum(ss,'h'),'Часов курсов'],[avg,'Средняя оценка курса'],[nAct,'Видов активностей']];
+ $('kpis').innerHTML=kp.map(([v,t])=>`<div class="card kpi"><b>${v}</b><span>${t}</span></div>`).join('');
+ const mx=Math.max(1,...ss.map(x=>Math.max(x.a||0,x.d||0))),H=150,W=44;
+ let sv=`<svg viewBox="0 0 ${Math.max(ms.length,1)*W} ${H+34}" style="width:100%;min-width:${ms.length*W}px" role="img" aria-label="Динамика по месяцам">`;
+ ms.forEach((m,i)=>{const s=ss.filter(x=>x.m===m),d=sum(s,'d'),a=sum(s,'a'),x0=i*W,hd=d/mx*H,ha=a/mx*H;
+  sv+=`<rect x="${x0+6}" y="${H+8-hd}" width="14" height="${hd}" fill="var(--ac2)"/><rect x="${x0+22}" y="${H+8-ha}" width="14" height="${ha}" fill="var(--ac)"/><text x="${x0+29}" y="${H+4-ha}" text-anchor="middle">${s.length?a:''}</text><text x="${x0+W/2}" y="${H+22}" text-anchor="middle">${lab(m)}</text><text x="${x0+W/2}" y="${H+33}" text-anchor="middle">${s.length} сес.</text>`});
+ $('ch').innerHTML=sv+'</svg>';
+ const grp=k=>[...new Set(ss.map(x=>x[k]||'не указан'))].map(v=>{const g=ss.filter(x=>(x[k]||'не указан')===v);return{k:v,v:sum(g,'a'),s:`${g.length} сес. · ${sum(g,'a')} слуш. · ${sum(g,'h')} ч`}}).sort((a,b)=>b.v-a.v);
+ rows($('cs'),grp('c'));rows($('ct'),grp('g'));
+ $('ac').innerHTML=`<table><tr><th>Активность</th>${ms.map(m=>`<th>${lab(m)}</th>`).join('')}</tr>`+names.map(n=>`<tr><td class="w">${esc(n)}</td>${ms.map(m=>`<td class="dot">${has(n,m)?'●':''}</td>`).join('')}</tr>`).join('')+'</table>';
+ $('tb').innerHTML=ss.length?`<table><tr><th>Месяц</th><th>Курс</th><th>Даты</th><th>Тип</th><th>Город</th><th>Часы</th><th>Заявлено</th><th>Факт</th><th>Оценка</th></tr>`+ss.map(x=>`<tr><td>${lab(x.m)}</td><td class="w">${esc(x.c)}</td><td>${dr(x.s,x.e)}</td><td>${x.p?'плановый':'внеплановый'}</td><td>${esc(x.g||'—')}</td><td>${x.h??'—'}</td><td>${x.d??'—'}</td><td>${x.a??'—'}</td><td>${x.r??'—'}</td></tr>`).join('')+'</table>':'<div class="note">Нет сессий по выбранным фильтрам</div>';}
+function dl(name,rows){const t='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download=name;a.click()}
+$('ex1').onclick=()=>dl('sessions.csv',[['Месяц','Курс','Начало','Конец','Тип','Город','Часы','Заявлено','Факт','Оценка','Источник']].concat(cur.map(x=>[x.m,x.c,x.s,x.e,x.p?'плановый':'внеплановый',x.g,x.h,x.d,x.a,x.r,(DB.R.find(r=>r.id===x.rid)||{}).file])));
+// ---------- загрузка ----------
+let pend=null;
+$('fl').onchange=()=>{const f=$('fl').files[0];if(!f)return;const n=f.name.toLowerCase();
+ const mm=[['янв','01'],['фев','02'],['фера','02'],['мар','03'],['апр','04'],['ма','05'],['июн','06'],['июл','07'],['авг','08'],['сен','09'],['окт','10'],['ноя','11'],['дек','12']].find(x=>n.includes('за '+x[0]));
+ if(mm)$('mo').value=((n.match(/20\d\d/)||[new Date().getFullYear()])[0])+'-'+mm[1]};
+const msg=(c,t)=>`<div class="msg ${c}">${esc(t)}</div>`;
+$('chk').onclick=async()=>{
+ const f=$('fl').files[0],mo=$('mo').value,pv=$('pv');pend=null;
+ if(!f||!mo){pv.innerHTML=msg('er','Выберите файл и месяц отчёта');return}
+ if(!/\.docx$/i.test(f.name)||f.size>1e7){pv.innerHTML=msg('er','Нужен файл .docx размером до 10 МБ');return}
+ const buf=await f.arrayBuffer();let res;
+ try{if(new Uint8Array(buf,0,2).join()!=='80,75')throw 0;res=parseXml(await unzip(buf),mo)}catch(e){pv.innerHTML=msg('er','Не удалось прочитать файл как Word-документ (.docx)');return}
+ const on=act(),ex=new Set(DB.S.filter(x=>on.has(x.rid)).map(K)),dups=res.S.filter(s=>ex.has(K(s))).length;
+ if(DB.R.some(r=>r.st==='active'&&r.month===mo))res.wa.push('Отчёт за '+lab(mo)+' уже загружен; повторяющиеся сессии будут пропущены');
+ if(DB.R.some(r=>r.st==='active'&&r.file===f.name))res.wa.push('Файл с таким именем уже загружен');
+ pend={...res,month:mo,file:f.name};
+ const c=[[res.S.length,'Строк курсов'],[res.S.length-dups,'Новых записей'],[dups,'Потенциальных дублей'],[res.er.length,'Ошибок'],[new Set(res.S.map(s=>s.c)).size,'Курсов'],[res.A.length,'Активностей']];
+ pv.innerHTML=`<div class="pv">${c.map(([v,t])=>`<div><b>${v}</b>${t}</div>`).join('')}</div>`+res.er.map(t=>msg('er','✖ '+t)).join('')+res.wa.map(t=>msg('wa','⚠ '+t)).join('')+(res.er.length?msg('er','Импорт невозможен: исправьте ошибки в файле.'):msg('ok','Проверка пройдена. Подтвердите импорт.'))+`<button class="b" id="ok" ${res.er.length?'disabled':''}>Подтвердить импорт</button> <button class="b g" id="no">Отменить</button>`;
+ $('no').onclick=()=>{pend=null;pv.innerHTML=''};
+ $('ok').onclick=()=>{const id=Date.now(),on2=act(),ex2=new Set(DB.S.filter(x=>on2.has(x.rid)).map(K)),ns=pend.S.filter(s=>!ex2.has(K(s)));
+  DB.R.push({id,month:pend.month,file:pend.file,at:new Date().toISOString().slice(0,10),st:'active',n:ns.length+pend.A.length,w:pend.wa});
+  ns.forEach((s,i)=>DB.S.push({...s,id:id+i,rid:id,m:pend.month}));pend.A.forEach(a=>DB.A.push({rid:id,m:pend.month,...a}));
+  save();pend=null;$('pv').innerHTML='';$('fl').value='';refresh();show('dash')};};
+// ---------- отчёты ----------
+function reps(){$('rp').innerHTML='<table><tr><th>Файл</th><th>Период</th><th>Дата загрузки</th><th>Записей</th><th>Статус</th><th>Действия</th></tr>'+[...DB.R].sort((a,b)=>a.month<b.month?-1:1).map(r=>`<tr><td class="w">${esc(r.file)}${(r.w||[]).map(w=>`<div class="sub wa">⚠ ${esc(w)}</div>`).join('')}</td><td>${lab(r.month)}</td><td>${r.at}</td><td>${r.n}</td><td>${r.st==='active'?'<span class="ok">активен</span>':'<span class="er">удалён</span>'}</td><td><button class="b g" data-id="${r.id}">${r.st==='active'?'Удалить':'Восстановить'}</button></td></tr>`).join('')+'</table>'}
+$('rp').onclick=e=>{const b=e.target.closest('button');if(!b)return;const r=DB.R.find(x=>x.id==b.dataset.id);
+ if(r.st==='active'&&!confirm('Данные отчёта «'+r.file+'» будут исключены из аналитики. Продолжить?'))return;
+ r.st=r.st==='active'?'deleted':'active';save();refresh();reps()};
+refresh();show('dash');
+</script></body></html>
